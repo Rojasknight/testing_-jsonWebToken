@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\DB;
 
 use App\Http\Requests;
 use App\User;
+use App\Helpers\JwtAuth;
 
 class UserController extends Controller
 {
@@ -17,8 +18,6 @@ class UserController extends Controller
 
         $json = $request->input('json', null);
         $params = json_decode($json);
-
-
 
 
         $email = (!is_null($json) && isset($params->email)) ? $params->email : null;
@@ -44,7 +43,7 @@ class UserController extends Controller
             //Comprobar el usuario
             $isser_user = User::where('email', '=', $email)->first();
 
-            if (count($isser_user == 0)) {
+            if (count($isser_user) == 0) {
                 //guardarlo
 
                 $user->save();
@@ -78,7 +77,34 @@ class UserController extends Controller
 
     public function login(Request $request)
     {
-        echo "accion login";
-        die();
+        $jwtAuth = new JwtAuth();
+
+        //request POST
+        $json = $request->input('json');
+
+        $params = json_decode($json);
+
+        $email = (!is_null($json) && isset($params->email) ? $params->email : null);
+        $password = (!is_null($json) && isset($params->password) ? $params->password : null);
+        $getToken = (!is_null($json) && isset($params->gettoken) ? $params->gettoken : null);
+
+        //password encrypt
+        $pwd = hash('sha256', $password);
+
+        if (!is_null($email) && !is_null($password) && ($getToken == null || $getToken == 'false')) {
+            $singup = $jwtAuth->singup($email, $pwd);
+
+        } elseif ($getToken != null) {
+            $singup = $jwtAuth->singup($email, $pwd, $getToken);
+
+        } else {
+            $singup = array(
+                'status' => 'error',
+                'message' => 'envia tus datos por post'
+            );
+        }
+
+
+        return response()->json($singup, 200);
     }
 }
